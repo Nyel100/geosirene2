@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Leaflet Tutorial</title>
+
+  <!-- Leaflet CSS -->
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+  />
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.css"
+  />
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.Default.css"
+  />
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css"
+  />
+  <link
+    rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
+  />
+
+
+
+  <style>
+    
+ html, body {
+      height: 100%;
+      margin: 0;
+      padding: 0;
+    }
+    #map {
+      height: 100%;
+      width: 100%;
+    }
+  </style>
+  <style>
+  .weather-control {
+  background-color: rgba(255, 255, 255, 0.95);
+  padding: 6px 8px;         /* menor espaço interno */
+  border-radius: 8px;       /* cantos menos arredondados */
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.2);
+  max-width: 250px;         /* largura máxima reduzida */
+  font-size: 0.85rem;       /* tamanho de fonte menor */
+  line-height: 1.3;
+  font-family: Arial, sans-serif;
+  color: #333;
+  text-align: left;
+  z-index: 1000;
+  margin: 8px;
+}
+
+
+  @media (max-width: 600px) {
+  .weather-control {
+    font-size: 0.8rem;
+    padding: 6px;
+    max-width: 90vw; /* ou mantenha como está para ocupar mais em telas pequenas */
+  }
+}
+
+</style>
+
+<style>
+.leaflet-routing-container {
+  position: relative !important;
+  z-index: 10000 !important;
+  min-height: 60px !important;
+  background: white !important; /* para destacar o painel */
+  padding: 10px !important;
+  border-radius: 8px !important;
+}
+</style>
+
+</head>
+<body>
+<button id="btn-toggle-sidebar" style="position: absolute; top: 130px; left: 10px; z-index: 1100; padding: 10px 15px; border-radius: 6px; border: none; background-color: #2c7be5; color: white; cursor: pointer;">
+  ☰ Abrir Painel
+</button>
+
+<div id="sidebar" style="
+  position: absolute;
+  top: 0;
+  left: -300px;   /* inicialmente escondido, fora da tela */
+  width: 300px;
+  height: 100%;
+  background: linear-gradient(to bottom, #ffb760, #ff9f1a, #d9821f);
+  box-shadow: 2px 0 8px rgba(0,0,0,0.3);
+  padding: 20px;
+  box-sizing: border-box;
+  transition: left 0.3s ease;
+  z-index: 1050;
+  overflow-y: auto;
+">
+ <h2>
+  <img src="logo.png" alt="Ícone de sirene" style="height: 100px; vertical-align: middle; margin-right: 8px;">
+  <span style="font-family: Impact, Haettenschweiler, sans-serif; font-size: 27px;">
+    GeoSirene
+  </span>
+</h2>
+
+
+
+  <div id="painel-chuva" class="weather-control" style="margin-top: 115px; margin-left: -1px;">
+    Carregando dados de chuva...
+  </div>
+
+   <button
+  id="btn-geolocate"
+  style="
+    position: absolute;
+    top: 150px;
+    left: 20px;
+    z-index: 1000;
+    background-color: #007BFF;
+    color: white;
+    border: none;
+    padding: 10px 16px;
+    font-size: 16px;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    cursor: pointer;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+  "
+  onmouseover="this.style.backgroundColor='#0056b3'; this.style.transform='scale(1.05)'"
+  onmouseout="this.style.backgroundColor='#007BFF'; this.style.transform='scale(1)'"
+>
+  <i class="fas fa-location-arrow" style="margin-right: 8px;"></i>
+  Minha Localização
+</button>
+<style>
+  #btn-route {
+    position: absolute;
+    top: 192px;       /* distância do topo */
+    left: 10px;      /* distância da esquerda */
+    z-index: 1000;   /* fica sobre o mapa */
+    background-color: #2c7be5;
+    color: white;
+    border: none;
+    padding: 10px 18px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    cursor: pointer;
+    box-shadow: 0 3px 8px rgba(0,0,0,0.25);
+    transition: background-color 0.3s ease;
+    width: 220px;
+  }
+
+  #btn-route:disabled {
+    background-color: #a0aec0;
+    cursor: not-allowed;
+    box-shadow: none;
+  }
+
+  #btn-route:hover:not(:disabled) {
+    background-color: #1a5fcc;
+  }
+</style>
+<div id="weather-panel" class="weather-control">Carregando clima...</div>
+<button id="btn-route" disabled style="
+  position: absolute;
+  left: 20px;
+  z-index: 1000;
+">Rota para ponto o ponto de apoio mais próximo</button>
+  <button id="btn-close-sidebar" style="margin-top: 20px; padding: 8px 12px; border: none; background-color: #e74c3c; color: white; cursor: pointer; border-radius: 5px;">Fechar</button>
+</div>
+  <div id="map"></div>
+ 
+
+  <!-- JS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/leaflet.markercluster/dist/leaflet.markercluster.js"></script>
+  <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
+  
+  <!-- roteamento -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.css" />
+<script src="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.js"></script>
+  <!-- roteamento -->
+
+  
+  <script src="script.js"></script>
+
+  <script>
+    
+    var map = L.map("map").setView([-22.915393, -43.303986], 12);
+
+
+ //sidebar
+const btnToggle = document.getElementById('btn-toggle-sidebar');
+const sidebar = document.getElementById('sidebar');
+const btnClose = document.getElementById('btn-close-sidebar');
+
+btnToggle.addEventListener('click', () => {
+  sidebar.style.left = '0';  // Mostrar o painel
+  btnToggle.style.display = 'none';  // Esconder botão "Abrir"
+});
+
+btnClose.addEventListener('click', () => {
+  sidebar.style.left = '-300px';  // Esconder o painel
+  btnToggle.style.display = 'block';  // Mostrar botão "Abrir"
+});
+
+
+
+
+    // API Key OpenWeatherMap
+const apiKey = "e6d543e879114f28a10c2a495e2d74f2";
+
+// Cria um controle customizado no canto superior direito para mostrar clima
+const weatherPanel = document.getElementById('weather-panel');
+
+// Aplica estilos diretamente (se quiser manter os mesmos visuais)
+weatherPanel.style.backgroundColor = 'rgba(255, 255, 255, 0.95)';
+weatherPanel.style.padding = '12px';
+weatherPanel.style.borderRadius = '12px';
+weatherPanel.style.boxShadow = '0 2px 10px rgba(0,0,0,0.3)';
+weatherPanel.style.maxWidth = '100%';
+weatherPanel.style.fontSize = '1rem';
+weatherPanel.style.lineHeight = '1.4';
+weatherPanel.style.fontFamily = 'Arial, sans-serif';
+weatherPanel.style.color = '#333';
+weatherPanel.style.textAlign = 'left';
+weatherPanel.style.margin = '15px 0';
+
+
+// Função para atualizar o painel de clima
+function showWeather(lat, lon) {
+  fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&units=metric&appid=${apiKey}&lang=pt`)
+    .then(response => response.json())
+    .then(data => {
+      const city = data.name;
+      const temp = data.main.temp.toFixed(1);
+      const description = data.weather[0].description;
+      const icon = data.weather[0].icon;
+      const iconUrl = `https://openweathermap.org/img/wn/${icon}@2x.png`;
+
+      weatherPanel.innerHTML = `
+        <h4>Clima em ${city}</h4>
+        <img src="${iconUrl}" alt="${description}" style="vertical-align: middle;">
+        <b>${temp} °C</b><br>
+        <i style="text-transform: capitalize;">${description}</i>
+      `;
+    })
+    .catch(err => {
+      weatherPanel.innerHTML = 'Erro ao buscar dados do clima';
+      console.error(err);
+    });
+}
+
+
+// Mostrar clima ao carregar o mapa
+showWeather(-22.915393, -43.303986);
+
+// Mostrar clima na localização do usuário
+map.on('locationfound', e => {
+  showWeather(e.latlng.lat, e.latlng.lng);
+});
+
+
+
+
+
+
+
+
+// Controle customizado para dados de chuva
+var chuvaControl = L.control({ position: 'topright' });
+
+chuvaControl.onAdd = function(map) {
+  this._div = L.DomUtil.create('div', 'weather-control'); // usa a mesma classe para estilo
+  //this._div.innerHTML = 'Carregando dados de chuva...';
+  return this._div;
+};
+
+chuvaControl.addTo(map);
+
+// Função para buscar dados do backend FastAPI e atualizar painel
+function atualizarDadosChuva() {
+  const painelChuva = document.getElementById("painel-chuva");
+
+  fetch("http://192.168.1.53:8000/dados-chuva")
+    .then(response => response.json())
+    .then(data => {
+      if (data.erro) {
+        painelChuva.innerHTML = `<b>Erro:</b> ${data.erro}`;
+      } else {
+        painelChuva.innerHTML = `
+          <h4>Dados de Deslizamento</h4>
+          <b>Risco Atual:</b> ${data["Risco atual"]}<br>
+          <b>Última Atualização:</b> ${data["Última atualização"]}<br>
+          <b>Consulta realizada em:</b> ${data["Hora da extração"]}<br><br>
+          <b>Fonte: Defesa Civil - RJ</b>
+        `;
+      }
+    })
+    .catch(err => {
+      painelChuva.innerHTML = 'Erro ao carregar dados de chuva';
+      console.error(err);
+    });
+}
+
+// Atualiza os dados na carga inicial
+atualizarDadosChuva();
+
+// Atualiza a cada 15 minutos
+setInterval(atualizarDadosChuva, 900000);
+
+
+
+
+
+
+
+    
+
+    // Basemap padrão OSM
+    var osm = L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      attribution:
+        '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    });
+
+    // Basemap satélite - Esri World Imagery
+    var satellite = L.tileLayer(
+      "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+      {
+        attribution:
+          "Tiles © Esri — Source: Esri, Maxar, Earthstar Geographics, and others",
+      }
+    );
+
+    // Basemap claro - CartoDB Positron
+    var light = L.tileLayer(
+      "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
+      {
+        attribution: "&copy; OpenStreetMap contributors &copy; CARTO",
+        subdomains: "abcd",
+        maxZoom: 19,
+      }
+    );
+
+    osm.addTo(map);
+
+    // Controle para alternar basemaps
+    var baseMaps = {
+      OpenStreetMap: osm,
+      Satélite: satellite,
+      "Mapa Claro": light,
+    };
+
+    L.control.layers(baseMaps).addTo(map);
+
+    
+
+    // Adiciona controle de geocoder
+   L.Control.geocoder({ position: 'topleft' }).addTo(map);
+
+
+
+    // Marcadores cluster
+    var markers = L.markerClusterGroup();
+
+    // Função para criar popup dos pontos de apoio
+    function addPopup(feature, layer) {
+      var popupContent = `
+                <b>Local de Apoio:</b> ${feature.properties["Local de Apoio"]}<br>
+                <b>Endereço:</b> ${feature.properties["Endereço"]}<br>
+                <b>Comunidade:</b> ${feature.properties["Comunidade"]}<br>
+            `;
+      layer.bindPopup(popupContent);
+    }
+
+    // Adicionar marcadores com ícone de sino - verifique se pontosApoio está definido
+    if (typeof pontosApoio !== "undefined") {
+      L.geoJSON(pontosApoio, {
+        pointToLayer: function (feature, latlng) {
+          return L.marker(latlng, {
+            icon: L.divIcon({
+              html: '<i class="fa-solid fa-bell" style="color: red; font-size: 20px;"></i>',
+              className: "",
+              iconSize: [25, 25],
+              iconAnchor: [12, 12],
+            }),
+          });
+        },
+        onEachFeature: addPopup,
+      }).addTo(markers);
+
+      markers.addTo(map);
+    }
+
+    // Carregar bairros sem preenchimento (fillOpacity: 0)
+    if (typeof bairros !== "undefined") {
+      L.geoJSON(bairros, {
+        style: {
+          color: "blue",
+          weight: 2,
+          fillOpacity: 0,
+        },
+      }).addTo(map);
+    }
+
+let userLatLng = null; // Guarda a posição do usuário
+  let userMarker = null; // Marcador da localização
+
+  // Clicar em "Minha Localização"
+  document.getElementById("btn-geolocate").addEventListener("click", function () {
+    map.locate({ setView: true, maxZoom: 16 });
+  });
+
+  // Quando localização for encontrada
+  map.on("locationfound", function (e) {
+    userLatLng = e.latlng;
+
+    // Remove marcador antigo, se existir
+    if (userMarker) {
+      map.removeLayer(userMarker);
+    }
+
+    // Cria marcador na posição do usuário
+    userMarker = L.marker(userLatLng).addTo(map)
+      .bindPopup("Você está aqui!")
+      .openPopup();
+
+    // Centraliza e dá zoom
+    map.setView(userLatLng, 16);
+
+    // Habilita o botão de roteamento
+    document.getElementById("btn-route").disabled = false;
+  });
+
+  // Erro na localização
+  map.on("locationerror", function (e) {
+    alert("Não foi possível obter a localização: " + e.message);
+  });
+
+  // Botão para criar rota
+  document.getElementById("btn-route").addEventListener("click", function () {
+    if (!userLatLng) {
+      alert("Por favor, localize-se primeiro usando o botão 'Minha Localização'.");
+      return;
+    }
+
+    const nearest = findNearestSupportPoint(userLatLng, pontosApoio);
+
+    if (!nearest) {
+      alert("Nenhum ponto de apoio encontrado.");
+      return;
+    }
+
+    L.Routing.control({
+      waypoints: [
+        userLatLng,
+        L.latLng(nearest.lat, nearest.lng)
+      ],
+      routeWhileDragging: false,
+      showAlternatives: false,
+      showInstructions: true,
+      show: false
+    }).addTo(map);
+  });
+
+  // Função para encontrar ponto mais próximo
+  function findNearestSupportPoint(userLatLng, geojson) {
+    let minDist = Infinity;
+    let nearest = null;
+
+    geojson.features.forEach(feature => {
+      const [lng, lat] = feature.geometry.coordinates;
+      const dist = map.distance(userLatLng, L.latLng(lat, lng));
+      if (dist < minDist) {
+        minDist = dist;
+        nearest = { lat, lng };
+      }
+    });
+
+    return nearest;
+  }
+  </script>
+</body>
+</html>
